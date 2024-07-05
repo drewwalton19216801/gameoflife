@@ -21,6 +21,7 @@ cargo run
 ```toml
 [dependencies]
 rand = "0.8.5"
+termsize = "0.1.8"
 ```
 
 ## License
