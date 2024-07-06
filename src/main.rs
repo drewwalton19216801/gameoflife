@@ -5,7 +5,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use rand::{self, Rng};
-use std::io::{stdout, Write};
+use std::{error::Error, io::{stdout, Write}};
 use std::thread;
 use std::time::Duration;
 use termsize;
@@ -28,9 +28,9 @@ struct ConsoleSize {
 ///
 /// * `grid` - The initial grid.
 /// * `console_size` - The size of the console.
-fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
+fn initialize_grid() -> Result<(Vec<Vec<bool>>, ConsoleSize), Box<dyn Error>> {
     // Get the current terminal size.
-    let size = termsize::get().unwrap();
+    let size = termsize::get().ok_or("Failed to get terminal size")?;
 
     // Create a random number generator.
     let mut rng = rand::thread_rng();
@@ -46,13 +46,13 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
         }
     }
 
-    (
+    Ok((
         grid,
         ConsoleSize {
             rows: size.rows as usize,
             cols: size.cols as usize,
         },
-    )
+    ))
 }
 
 /// Prints the grid to the console.
@@ -61,29 +61,26 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
 ///
 /// * `grid` - The grid to be printed.
 /// * `prev_grid` - The previous grid state.
-fn display_grid(grid: &[Vec<bool>], prev_grid: &[Vec<bool>]) {
+fn display_grid(grid: &[Vec<bool>], prev_grid: &[Vec<bool>]) -> Result<(), Box<dyn Error>> {
     let mut stdout = stdout();
     for (y, row) in grid.iter().enumerate() {
         for (x, &cell) in row.iter().enumerate() {
             if cell != prev_grid[y][x] {
-                stdout.execute(cursor::MoveTo(x as u16, y as u16)).unwrap();
+                stdout.execute(cursor::MoveTo(x as u16, y as u16))?;
                 if cell {
                     stdout
-                        .execute(SetForegroundColor(Color::Green))
-                        .unwrap()
-                        .execute(Print("#"))
-                        .unwrap();
+                        .execute(SetForegroundColor(Color::Green))?
+                        .execute(Print("#"))?;
                 } else {
                     stdout
-                        .execute(SetForegroundColor(Color::Black))
-                        .unwrap()
-                        .execute(Print(" "))
-                        .unwrap();
+                        .execute(SetForegroundColor(Color::Black))?
+                        .execute(Print(" "))?;
                 }
             }
         }
     }
-    stdout.flush().unwrap();
+    stdout.flush()?;
+    Ok(())
 }
 
 /// Calculates the number of live neighbors of a cell in the grid.
@@ -171,18 +168,18 @@ fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
 /// # Returns
 ///
 /// This function does not return anything.
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     // Initialize the grid with a random pattern of live and dead cells and get the size of the console.
-    let (mut grid, console_size) = initialize_grid();
+    let (mut grid, console_size) = initialize_grid()?;
     let mut prev_grid = grid.clone();
 
     // Clear the screen before starting the loop.
-    execute!(stdout(), Clear(ClearType::All)).unwrap();
+    execute!(stdout(), Clear(ClearType::All))?;
 
     // Enter an infinite loop to continuously update and display the grid.
     loop {
         // Display the current state of the grid to the console.
-        display_grid(&grid, &prev_grid);
+        display_grid(&grid, &prev_grid)?;
 
         // Update the grid by applying the Game of Life rules.
         prev_grid = grid.clone();
