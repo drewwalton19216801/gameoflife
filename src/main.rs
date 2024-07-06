@@ -71,7 +71,7 @@ fn display_grid(grid: &[Vec<bool>], prev_grid: &[Vec<bool>]) {
                     stdout
                         .execute(SetForegroundColor(Color::Green))
                         .unwrap()
-                        .execute(Print("O"))
+                        .execute(Print("#"))
                         .unwrap();
                 } else {
                     stdout
