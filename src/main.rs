@@ -11,7 +11,6 @@ struct ConsoleSize {
 /// Generates an initial grid for the Game of Life.
 ///
 /// The grid is initialized with a random pattern of live and dead cells.
-/// The borders of the grid are also initialized with live cells.
 ///
 /// # Returns
 /// 
