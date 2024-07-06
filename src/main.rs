@@ -1,10 +1,15 @@
 use std::thread;
 use std::time::Duration;
 use termsize;
-use rand;
+use rand::{self, Rng};
 
+/// Represents the size of the console.
+///
+/// This struct contains the number of rows and columns in the console.
 struct ConsoleSize {
+    /// The number of rows in the console.
     rows: usize,
+    /// The number of columns in the console.
     cols: usize,
 }
 
@@ -20,6 +25,9 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
     // Get the current terminal size.
     let size = termsize::get().unwrap();
 
+    // Create a random number generator.
+    let mut rng = rand::thread_rng();
+
     // Create a 2D vector with the correct dimensions
     // and initialize all cells to `false`.
     let mut grid = vec![vec![false; size.cols as usize]; size.rows as usize];
@@ -27,7 +35,7 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
     // Set randomly generated live cells in the grid.
     for i in 0..size.cols as usize {
         for j in 0..size.rows as usize {
-            grid[j][i] = rand::random();
+            grid[j][i] = rng.gen_bool(0.5);
         }
     }
 
@@ -134,12 +142,15 @@ fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
 /// # Returns
 ///
 /// This function does not return anything.
-fn main() {
+fn main(){
     // Initialize the grid with a random pattern of live and dead cells and get the size of the console.
     let (mut grid, console_size) = initialize_grid();
 
     // Enter an infinite loop to continuously update and display the grid.
     loop {
+        // Clear the screen before displaying the next frame.
+        print!("\x1B[2J\x1B[1;1H");
+
         // Display the current state of the grid to the console.
         display_grid(&grid);
 
@@ -148,8 +159,5 @@ fn main() {
 
         // Sleep for a short duration to control the speed of the simulation.
         thread::sleep(Duration::from_millis(100));
-
-        // Clear the screen before displaying the next frame.
-        print!("\x1B[2J\x1B[1;1H");
     }
 }
