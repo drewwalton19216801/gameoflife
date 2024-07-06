@@ -20,6 +20,7 @@ cargo run
 
 ```toml
 [dependencies]
+crossterm = "0.27.0"
 rand = "0.8.5"
 termsize = "0.1.8"
 ```
