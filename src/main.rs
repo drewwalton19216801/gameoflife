@@ -42,7 +42,7 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
     // Set randomly generated live cells in the grid.
     for i in 0..size.cols as usize {
         for j in 0..size.rows as usize {
-            grid[j][i] = rng.gen_bool(0.5);
+            grid[j][i] = rng.gen_bool(0.2); // Reduced the probability to make the grid less crowded.
         }
     }
 
@@ -60,28 +60,28 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
 /// # Arguments
 ///
 /// * `grid` - The grid to be printed.
-fn display_grid(grid: &[Vec<bool>]) {
+/// * `prev_grid` - The previous grid state.
+fn display_grid(grid: &[Vec<bool>], prev_grid: &[Vec<bool>]) {
     let mut stdout = stdout();
-    stdout.execute(Clear(ClearType::All)).unwrap();
-    stdout.execute(cursor::MoveTo(0, 0)).unwrap();
-
-    for row in grid {
-        for &cell in row {
-            if cell {
-                stdout
-                    .execute(SetForegroundColor(Color::Green))
-                    .unwrap()
-                    .execute(Print("#"))
-                    .unwrap();
-            } else {
-                stdout
-                    .execute(SetForegroundColor(Color::Black))
-                    .unwrap()
-                    .execute(Print(" "))
-                    .unwrap();
+    for (y, row) in grid.iter().enumerate() {
+        for (x, &cell) in row.iter().enumerate() {
+            if cell != prev_grid[y][x] {
+                stdout.execute(cursor::MoveTo(x as u16, y as u16)).unwrap();
+                if cell {
+                    stdout
+                        .execute(SetForegroundColor(Color::Green))
+                        .unwrap()
+                        .execute(Print("O"))
+                        .unwrap();
+                } else {
+                    stdout
+                        .execute(SetForegroundColor(Color::Black))
+                        .unwrap()
+                        .execute(Print(" "))
+                        .unwrap();
+                }
             }
         }
-        stdout.execute(Print("\n")).unwrap();
     }
     stdout.flush().unwrap();
 }
@@ -174,13 +174,18 @@ fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
 fn main() {
     // Initialize the grid with a random pattern of live and dead cells and get the size of the console.
     let (mut grid, console_size) = initialize_grid();
+    let mut prev_grid = grid.clone();
+
+    // Clear the screen before starting the loop.
+    execute!(stdout(), Clear(ClearType::All)).unwrap();
 
     // Enter an infinite loop to continuously update and display the grid.
     loop {
         // Display the current state of the grid to the console.
-        display_grid(&grid);
+        display_grid(&grid, &prev_grid);
 
         // Update the grid by applying the Game of Life rules.
+        prev_grid = grid.clone();
         grid = update_grid(&mut grid, &console_size);
 
         // Sleep for a short duration to control the speed of the simulation.
