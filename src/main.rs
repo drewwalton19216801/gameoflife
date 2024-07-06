@@ -1,7 +1,14 @@
+use crossterm::{
+    cursor, execute,
+    style::{Color, Print, SetForegroundColor},
+    terminal::{Clear, ClearType},
+    ExecutableCommand,
+};
+use rand::{self, Rng};
+use std::io::{stdout, Write};
 use std::thread;
 use std::time::Duration;
 use termsize;
-use rand::{self, Rng};
 
 /// Represents the size of the console.
 ///
@@ -18,7 +25,7 @@ struct ConsoleSize {
 /// The grid is initialized with a random pattern of live and dead cells.
 ///
 /// # Returns
-/// 
+///
 /// * `grid` - The initial grid.
 /// * `console_size` - The size of the console.
 fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
@@ -39,7 +46,13 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
         }
     }
 
-    (grid, ConsoleSize { rows: size.rows as usize, cols: size.cols as usize})
+    (
+        grid,
+        ConsoleSize {
+            rows: size.rows as usize,
+            cols: size.cols as usize,
+        },
+    )
 }
 
 /// Prints the grid to the console.
@@ -48,14 +61,30 @@ fn initialize_grid() -> (Vec<Vec<bool>>, ConsoleSize) {
 ///
 /// * `grid` - The grid to be printed.
 fn display_grid(grid: &[Vec<bool>]) {
-    for row in grid {
-        for cell in row {
-            print!("{}", if *cell { '#' } else { ' ' });
-        }
-        println!();
-    }
-}
+    let mut stdout = stdout();
+    stdout.execute(Clear(ClearType::All)).unwrap();
+    stdout.execute(cursor::MoveTo(0, 0)).unwrap();
 
+    for row in grid {
+        for &cell in row {
+            if cell {
+                stdout
+                    .execute(SetForegroundColor(Color::Green))
+                    .unwrap()
+                    .execute(Print("#"))
+                    .unwrap();
+            } else {
+                stdout
+                    .execute(SetForegroundColor(Color::Black))
+                    .unwrap()
+                    .execute(Print(" "))
+                    .unwrap();
+            }
+        }
+        stdout.execute(Print("\n")).unwrap();
+    }
+    stdout.flush().unwrap();
+}
 
 /// Calculates the number of live neighbors of a cell in the grid.
 ///
@@ -66,7 +95,7 @@ fn display_grid(grid: &[Vec<bool>]) {
 /// * `y` - The y-coordinate of the cell.
 ///
 /// # Returns
-/// 
+///
 /// The number of live neighbors.
 fn live_neighbors(grid: &[Vec<bool>], x: usize, y: usize) -> usize {
     // Initialize a count for the live neighbors.
@@ -75,16 +104,16 @@ fn live_neighbors(grid: &[Vec<bool>], x: usize, y: usize) -> usize {
     // Iterate over the neighbors of the cell.
     for i in -1..=1 {
         for j in -1..=1 {
-
             // Skip the cell itself.
             if i == 0 && j == 0 {
                 continue;
             }
 
             // Check if the neighbor is within the grid bounds.
-            if let Some(&cell) = grid.get((y as i32 + i) as usize)
-                                     .and_then(|row| row.get((x as i32 + j) as usize)) {
-
+            if let Some(&cell) = grid
+                .get((y as isize + i) as usize)
+                .and_then(|row| row.get((x as isize + j) as usize))
+            {
                 // Increment the count if the neighbor is live.
                 count += cell as usize;
             }
@@ -103,7 +132,7 @@ fn live_neighbors(grid: &[Vec<bool>], x: usize, y: usize) -> usize {
 /// * `size` - The size of the grid.
 ///
 /// # Returns
-/// 
+///
 /// The updated grid.
 fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
     // Create a new grid with the same dimensions as the input grid.
@@ -142,15 +171,12 @@ fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
 /// # Returns
 ///
 /// This function does not return anything.
-fn main(){
+fn main() {
     // Initialize the grid with a random pattern of live and dead cells and get the size of the console.
     let (mut grid, console_size) = initialize_grid();
 
     // Enter an infinite loop to continuously update and display the grid.
     loop {
-        // Clear the screen before displaying the next frame.
-        print!("\x1B[2J\x1B[1;1H");
-
         // Display the current state of the grid to the console.
         display_grid(&grid);
 
