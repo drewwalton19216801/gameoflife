@@ -1,11 +1,11 @@
 use crossterm::{
     cursor, execute,
-    style::{Color, Print, SetForegroundColor},
+    style::Print,
     terminal::{Clear, ClearType},
     ExecutableCommand,
 };
 use rand::{self, Rng};
-use std::{error::Error, io::{stdout, Write}, sync::{atomic::AtomicBool, Arc}};
+use std::{error::Error, f64, io::{stdout, Write}, sync::{atomic::AtomicBool, Arc}};
 use std::thread;
 use std::time::Duration;
 use termsize;
@@ -28,7 +28,7 @@ struct ConsoleSize {
 ///
 /// * `grid` - The initial grid.
 /// * `console_size` - The size of the console.
-fn initialize_grid() -> Result<(Vec<Vec<bool>>, ConsoleSize), Box<dyn Error>> {
+fn initialize_grid(initial_grid_probability: f64) -> Result<(Vec<Vec<bool>>, ConsoleSize), Box<dyn Error>> {
     // Get the current terminal size.
     let size = termsize::get().ok_or("Failed to get terminal size")?;
 
@@ -42,7 +42,7 @@ fn initialize_grid() -> Result<(Vec<Vec<bool>>, ConsoleSize), Box<dyn Error>> {
     // Set randomly generated live cells in the grid.
     for i in 0..size.cols as usize {
         for j in 0..size.rows as usize {
-            grid[j][i] = rng.gen_bool(0.2); // Reduced the probability to make the grid less crowded.
+            grid[j][i] = rng.gen_bool(initial_grid_probability); // Reduced the probability to make the grid less crowded.
         }
     }
 
@@ -167,6 +167,22 @@ fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
 ///
 /// This function does not return anything.
 fn main() -> Result<(), Box<dyn Error>> {
+    let mut initial_grid_probability = 0.2;
+
+    // The first argument to the program is a float value that controls the randomness of the initial grid.
+    // let initial_grid_probability = std::env::args().nth(1).unwrap_or("0.2".to_string()).parse::<f64>().unwrap_or(0.2);
+    if let Some(arg) = std::env::args().nth(1) {
+        if let Some(val) = arg.parse::<f64>().ok() {
+            initial_grid_probability = val;
+            println!("Initial grid probability: {}", initial_grid_probability);
+        }
+    } else {
+        println!("Default initial grid probability: {}", initial_grid_probability);
+        println!("To change the initial grid probability, pass it as an argument to the program.");
+        println!("Example: <program_name> 0.5");
+    }
+    thread::sleep(Duration::from_millis(2000));
+
     // Create an atomic flag to track if the user has requested to exit the program.
     let should_exit = Arc::new(AtomicBool::new(false));
     let should_exit_clone = Arc::clone(&should_exit);
@@ -184,7 +200,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }).expect("Error setting Ctrl-C handler");
 
     // Initialize the grid with a random pattern of live and dead cells and get the size of the console.
-    let (mut grid, console_size) = initialize_grid()?;
+    let (mut grid, console_size) = initialize_grid(initial_grid_probability)?;
     let mut prev_grid = grid.clone();
 
     // Clear the screen before starting the loop.
