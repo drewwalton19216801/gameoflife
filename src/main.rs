@@ -5,7 +5,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use rand::{self, Rng};
-use std::{error::Error, io::{stdout, Write}};
+use std::{error::Error, io::{stdout, Write}, sync::{atomic::AtomicBool, Arc}};
 use std::thread;
 use std::time::Duration;
 use termsize;
@@ -69,11 +69,9 @@ fn display_grid(grid: &[Vec<bool>], prev_grid: &[Vec<bool>]) -> Result<(), Box<d
                 stdout.execute(cursor::MoveTo(x as u16, y as u16))?;
                 if cell {
                     stdout
-                        .execute(SetForegroundColor(Color::Green))?
                         .execute(Print("#"))?;
                 } else {
                     stdout
-                        .execute(SetForegroundColor(Color::Black))?
                         .execute(Print(" "))?;
                 }
             }
@@ -169,6 +167,22 @@ fn update_grid(grid: &mut [Vec<bool>], size: &ConsoleSize) -> Vec<Vec<bool>> {
 ///
 /// This function does not return anything.
 fn main() -> Result<(), Box<dyn Error>> {
+    // Create an atomic flag to track if the user has requested to exit the program.
+    let should_exit = Arc::new(AtomicBool::new(false));
+    let should_exit_clone = Arc::clone(&should_exit);
+
+    // Initialize the ctrlc handler.
+    ctrlc::set_handler(move || {
+        // Clear the screen before exiting.
+        execute!(stdout(), Clear(ClearType::All)).expect("Error clearing screen");
+        println!();
+        println!("Exiting...");
+
+        // Set the atomic flag to true to indicate that the user has requested to exit the program.
+        should_exit_clone.store(true, std::sync::atomic::Ordering::Relaxed);
+        
+    }).expect("Error setting Ctrl-C handler");
+
     // Initialize the grid with a random pattern of live and dead cells and get the size of the console.
     let (mut grid, console_size) = initialize_grid()?;
     let mut prev_grid = grid.clone();
@@ -177,7 +191,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     execute!(stdout(), Clear(ClearType::All))?;
 
     // Enter an infinite loop to continuously update and display the grid.
-    loop {
+    while !should_exit.load(std::sync::atomic::Ordering::Relaxed) {
         // Display the current state of the grid to the console.
         display_grid(&grid, &prev_grid)?;
 
@@ -187,5 +201,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Sleep for a short duration to control the speed of the simulation.
         thread::sleep(Duration::from_millis(100));
+
+        // If the user has requested to exit the program, break out of the loop.
+        if should_exit.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
     }
+
+    Ok(())
 }
