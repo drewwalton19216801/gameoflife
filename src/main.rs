@@ -170,11 +170,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut initial_grid_probability = 0.2;
 
     // The first argument to the program is a float value that controls the randomness of the initial grid.
-    // let initial_grid_probability = std::env::args().nth(1).unwrap_or("0.2".to_string()).parse::<f64>().unwrap_or(0.2);
     if let Some(arg) = std::env::args().nth(1) {
         if let Some(val) = arg.parse::<f64>().ok() {
+            // If the value is not between 0 and 1, error and inform the user.
+            if val < 0.0 || val > 1.0 {
+                println!("Initial grid probability must be between 0 and 1.");
+                return Ok(());
+            }
             initial_grid_probability = val;
             println!("Initial grid probability: {}", initial_grid_probability);
+        } else {
+            println!("Failed to parse argument as a float value. Using default value: {}", initial_grid_probability);
         }
     } else {
         println!("Default initial grid probability: {}", initial_grid_probability);
