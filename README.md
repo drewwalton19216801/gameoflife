@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a simple Rust implementation of the Game of Life, a cellular automaton devised by John Horton Conway.
+This is a [Rust](https://www.rust-lang.org) implementation of the Game of Life, a cellular automaton devised by John Horton Conway.
 
 ## Building
 
@@ -23,6 +23,7 @@ cargo run
 crossterm = "0.27.0"
 rand = "0.8.5"
 termsize = "0.1.8"
+ctrlc = "3.4.4"
 ```
 
 ## License
